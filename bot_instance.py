@@ -4,7 +4,7 @@ from aiogram import Bot, Dispatcher, types, Router
 from aiogram.filters import CommandStart
 
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-model = genai.GenerativeModel('gemini-1.5-flash')
+model = genai.GenerativeModel('gemini-2.5-flash')
 
 router = Router()
 
