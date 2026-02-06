@@ -20,23 +20,22 @@ async def start_handler(message: types.Message):
 async def chef_handler(message: types.Message):
     if not message.text:
         return
-
     await message.bot.send_chat_action(chat_id=message.chat.id, action="typing")
 
     prompt = (
-    f"You are an experienced executive chef. You have been given the following list of ingredients: {message.text}. "
-    "Suggest 2-3 dish options. For each dish, provide:\n"
-    "1. Name of the dish.\n"
-    "2. Estimated cooking time.\n"
-    "3. A brief step-by-step recipe.\n"
-    "Use only these ingredients + basic staples (salt, oil, water). If something critical is missing, please point it out politely."
+        f"You are a chef. Based on: {message.text}, suggest 2 quick recipes. "
+        "Be concise and clear. Format with Markdown."
     )
+    
     try:
         response = model.generate_content(prompt)
-        
-        await message.answer(response.text, parse_mode="Markdown")
+        text = response.text
+        if len(text) > 4000:
+            text = text[:4000] + "\n\n...(truncated due to length)"   
+        await message.answer(text, parse_mode="Markdown")
     except Exception as e:
-        await message.answer(f"Sorry, our chef is not available: {e}")
+        error_msg = str(e)[:100]
+        await message.answer(f"Chef error: {error_msg}")
 
 
 def get_dispatcher():
