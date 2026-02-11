@@ -1,14 +1,20 @@
-import asyncio
 import os
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from aiogram import Bot, types
 from aiogram.types import Update
-from bot_instance import get_dispatcher 
+from bot_instance import get_dispatcher
+from database import init_db
 
 TOKEN = os.getenv("BOT_TOKEN")
 bot = Bot(token=TOKEN)
 
 dp = get_dispatcher()
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    await init_db()
+    yield
 
 app = FastAPI()
 

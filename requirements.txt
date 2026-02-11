@@ -3,3 +3,6 @@ aiohttp
 fastapi
 uvicorn
 yfinance
+sqlalchemy
+asyncpg
+greenlet

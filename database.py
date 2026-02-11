@@ -1,0 +1,50 @@
+import os
+from sqlalchemy import Column, BigInteger, String, Integer, select, delete
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
+from sqlalchemy.orm import declarative_base
+
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+engine = create_async_engine(DATABASE_URL, echo=False)
+
+async_session = async_sessionmaker(engine, expire_on_commit=False)
+
+Base = declarative_base()
+
+class Favorite(Base):
+    __tablename__ = "favorites"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(BigInteger, index=True)
+    ticker = Column(String)
+
+async def init_db():
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+
+async def add_favorite(user_id: int, ticker: str):
+    async with async_session() as session:
+        result = await session.execute(
+            select(Favorite).where(Favorite.user_id == user_id, Favorite.ticker == ticker)
+        )
+        if result.scalar():
+            return False 
+
+        new_fav = Favorite(user_id=user_id, ticker=ticker)
+        session.add(new_fav)
+        await session.commit()
+        return True
+
+async def remove_favorite(user_id: int, ticker: str):
+    async with async_session() as session:
+        await session.execute(
+            delete(Favorite).where(Favorite.user_id == user_id, Favorite.ticker == ticker)
+        )
+        await session.commit()
+
+async def get_user_favorites(user_id: int):
+    async with async_session() as session:
+        result = await session.execute(
+            select(Favorite.ticker).where(Favorite.user_id == user_id)
+        )
+        return result.scalars().all()
