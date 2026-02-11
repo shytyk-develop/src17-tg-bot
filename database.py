@@ -6,52 +6,40 @@ from sqlalchemy.orm import declarative_base
 
 raw_url = os.getenv("DATABASE_URL")
 
-DATABASE_URL = ""
-connect_args = {}
-
 if raw_url:
-    if raw_url.startswith("postgres://"):
-        url_with_driver = raw_url.replace("postgres://", "postgresql+asyncpg://", 1)
-    elif raw_url.startswith("postgresql://"):
-        url_with_driver = raw_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+    clean_url = raw_url.split("?")[0].strip()
+    if clean_url.startswith("postgres://"):
+        DATABASE_URL = clean_url.replace("postgres://", "postgresql+asyncpg://", 1)
+    elif clean_url.startswith("postgresql://"):
+        DATABASE_URL = clean_url.replace("postgresql://", "postgresql+asyncpg://", 1)
     else:
-        url_with_driver = raw_url
-
-    if "?" in url_with_driver:
-        DATABASE_URL = url_with_driver.split("?")[0]
-    else:
-        DATABASE_URL = url_with_driver
-
-    ssl_context = ssl.create_default_context()
-    ssl_context.check_hostname = False
-    ssl_context.verify_mode = ssl.CERT_NONE
-    
-    connect_args = {"ssl": ssl_context}
-    
+        DATABASE_URL = clean_url
 else:
     DATABASE_URL = "sqlite+aiosqlite:///:memory:"
 
+ssl_context = ssl.create_default_context()
+ssl_context.check_hostname = False
+ssl_context.verify_mode = ssl.CERT_NONE
+
 engine = create_async_engine(
     DATABASE_URL, 
-    echo=False,
-    connect_args=connect_args
+    echo=False, 
+    connect_args={"ssl": ssl_context} if "sqlite" not in DATABASE_URL else {}
 )
 
 async_session = async_sessionmaker(engine, expire_on_commit=False)
-
 Base = declarative_base()
 
 class Favorite(Base):
     __tablename__ = "favorites"
-
     id = Column(Integer, primary_key=True, autoincrement=True)
     user_id = Column(BigInteger, index=True)
     ticker = Column(String)
 
 async def init_db():
-    if engine:
-        async with engine.begin() as conn:
-            await conn.run_sync(Base.metadata.create_all)
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    print("Tables created (if not existed)")
 
 async def add_favorite(user_id: int, ticker: str):
     async with async_session() as session:
@@ -60,7 +48,6 @@ async def add_favorite(user_id: int, ticker: str):
         )
         if result.scalar():
             return False 
-
         new_fav = Favorite(user_id=user_id, ticker=ticker)
         session.add(new_fav)
         await session.commit()
