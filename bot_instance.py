@@ -12,9 +12,9 @@ router = Router()
 def main_keyboard() -> InlineKeyboardMarkup:
     """Main menu with logical navigation"""
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="⭐️ My Watchlist", callback_data="menu_watchlist")],
+        [InlineKeyboardButton(text="⭐️ My Watchlist", callback_data="menu_watchlist"),
+         InlineKeyboardButton(text="ℹ️ Help", callback_data="menu_help")],
         [InlineKeyboardButton(text="🔍 Search Asset", callback_data="menu_search")],
-        [InlineKeyboardButton(text="ℹ️ Help", callback_data="menu_help")],
     ])
 
 
@@ -81,7 +81,6 @@ async def show_price(m: types.Message, ticker: str, edit: bool = False, callback
     
     if price:
         text = f"💰 **Price for {ticker}**\n\n`{price} {currency}`"
-        # Check if ticker is in user's favorites
         favorites = await get_user_favorites(callback.from_user.id if callback else m.from_user.id)
         is_favorite = ticker in favorites
     else:
