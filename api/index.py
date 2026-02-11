@@ -13,7 +13,11 @@ dp = get_dispatcher()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    await init_db()
+    try:
+        await init_db()
+        print("Database initialized successfully")
+    except Exception as e:
+        print(f"Database init error: {e}")
     yield
 
 app = FastAPI()
