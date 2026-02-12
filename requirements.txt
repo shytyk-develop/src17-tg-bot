@@ -6,3 +6,5 @@ yfinance
 sqlalchemy
 asyncpg
 greenlet
+mplfinance
+pandas

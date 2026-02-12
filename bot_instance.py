@@ -1,8 +1,12 @@
+import io
 import asyncio, logging
 import yfinance as yf
+import pandas as pd
+import mplfinance as mpf
+from aiogram.types import BufferedInputFile
 from aiogram import Dispatcher, Router, types, F
 from aiogram.filters import CommandStart, Command
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery, BufferedInputFile
 from database import add_favorite, get_user_favorites, remove_favorite
 
 router = Router()
@@ -35,7 +39,9 @@ def edit_watchlist_keyboard(tickers: list) -> InlineKeyboardMarkup:
 
 def price_keyboard(ticker: str, is_favorite: bool = False) -> InlineKeyboardMarkup:
     """Price display keyboard - Add to watchlist or Remove from watchlist, and Back"""
-    buttons = []
+    buttons = [
+        [InlineKeyboardButton(text="📊 Show Chart", callback_data=f"chart_{ticker}")]
+    ]
     if is_favorite:
         buttons.append([InlineKeyboardButton(text=f"🗑 Remove from Watchlist", callback_data=f"fav_del_{ticker}")])
     else:
@@ -66,6 +72,35 @@ def fetch_price(ticker: str) -> tuple[str, str] | tuple[None, None]:
     except Exception as e:
         logging.error(f"Fetch error {ticker}: {e}")
         return None, None
+
+def generate_chart(ticker: str):
+    try:
+        stock = yf.Ticker(ticker)
+        df = stock.history(period="1mo", interval="1d")
+        
+        if df.empty:
+            return None
+
+        buf = io.BytesIO()
+        
+        mc = mpf.make_marketcolors(up='green', down='red', inherit=True)
+        s = mpf.make_mpf_style(base_mpl_style='seaborn-v0_8', marketcolors=mc, gridstyle='--')
+
+        mpf.plot(
+            df, 
+            type='candle', 
+            style=s,
+            title=f"\n{ticker} - Monthly Chart",
+            ylabel='Price',
+            savefig=dict(fname=buf, dpi=100, bbox_inches='tight'),
+            datetime_format='%d %b'
+        )
+        
+        buf.seek(0)
+        return buf
+    except Exception as e:
+        logging.error(f"Chart generation error for {ticker}: {e}")
+        return None
 
 # ---------- Core Logic ----------
 
@@ -287,6 +322,25 @@ async def search_ticker(m: types.Message) -> None:
         return
     
     await show_price(m, ticker)
+
+
+@router.callback_query(F.data.startswith("chart_"))
+async def show_chart_callback(c: CallbackQuery) -> None:
+    ticker = c.data.split("_")[1]
+    
+    await c.answer("Generating chart... please wait.")
+    
+    chart_buffer = await asyncio.to_thread(generate_chart, ticker)
+    
+    if chart_buffer:
+        photo = BufferedInputFile(chart_buffer.read(), filename=f"{ticker}_chart.png")
+        await c.message.answer_photo(
+            photo=photo, 
+            caption=f"📈 Monthly chart for **{ticker}**",
+            parse_mode="Markdown"
+        )
+    else:
+        await c.answer("❌ Could not generate chart for this ticker.", show_alert=True)
 
 
 # ========== HELP ==========
