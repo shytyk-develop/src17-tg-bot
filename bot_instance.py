@@ -1,7 +1,7 @@
 import asyncio, logging
 import yfinance as yf
 from aiogram import Dispatcher, Router, types, F
-from aiogram.filters import CommandStart
+from aiogram.filters import CommandStart, Command
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 from database import add_favorite, get_user_favorites, remove_favorite
 
@@ -108,6 +108,36 @@ async def start(m: types.Message) -> None:
         "Track your favorite assets and get real-time prices.\n\n"
         "👇 **Choose an option:**",
         reply_markup=main_keyboard(), 
+        parse_mode="Markdown"
+    )
+
+
+@router.message(Command("help"))
+async def help_command(m: types.Message) -> None:
+    """Help command - show help menu"""
+    text = (
+        "ℹ️ **How to use this bot**\n\n"
+        "**⭐️ Watchlist**\n"
+        "View your favorite assets with real-time prices.\n"
+        "• Tap **Edit** to remove items\n"
+        "• Tap **Back** to return to menu\n\n"
+        "**🔍 Search Asset**\n"
+        "Find any stock, crypto, or currency price.\n"
+        "Just type the ticker symbol.\n\n"
+        "**Supported Assets:**\n"
+        "• US Stocks: `AAPL`, `GOOGL`, `MSFT`, etc.\n"
+        "• Cryptocurrencies: `BTC-USD`, `ETH-USD`, etc.\n"
+        "• Currencies: `EURUSD=X`, `GBPUSD=X`, etc.\n\n"
+        "**Need help?**\n"
+        "Use /start to return to main menu."
+    )
+    
+    await m.answer(
+        text,
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="GitHub", url="https://github.com/shytyk-develop")],
+            [InlineKeyboardButton(text="🔙 Back", callback_data="back_to_main")]
+        ]),
         parse_mode="Markdown"
     )
 
