@@ -137,7 +137,7 @@ async def help_command(m: types.Message) -> None:
         text,
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="🔙 Back", callback_data="back_to_main"),
-            InlineKeyboardButton(text="GitHub", url="https://github.com/shytyk-develop")]
+            InlineKeyboardButton(text="GitHub", url="https://github.com/shytyk-develop/src17-telegram-bot")]
         ]),
         parse_mode="Markdown"
     )
