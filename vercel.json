@@ -1,5 +1,12 @@
 {
   "rewrites": [
+    { "source": "/api/cron/broadcast", "destination": "/api/index.py" },
     { "source": "/(.*)", "destination": "/api/index.py" }
+  ],
+  "crons": [
+    {
+      "path": "/api/cron/broadcast",
+      "schedule": "0 7,15,19 * * *"
+    }
   ]
 }

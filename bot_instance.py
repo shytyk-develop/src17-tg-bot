@@ -7,7 +7,7 @@ from aiogram.types import BufferedInputFile
 from aiogram import Dispatcher, Router, types, F
 from aiogram.filters import CommandStart, Command
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery, BufferedInputFile
-from database import add_favorite, get_user_favorites, remove_favorite
+from database import add_favorite, get_user_favorites, remove_favorite, get_subscription_status, toggle_subscription
 
 router = Router()
 
@@ -21,11 +21,14 @@ def main_keyboard() -> InlineKeyboardMarkup:
     ])
 
 
-def watchlist_keyboard(has_items: bool) -> InlineKeyboardMarkup:
-    """Watchlist menu with Edit and Back buttons"""
+async def watchlist_keyboard(has_items: bool, user_id: int) -> InlineKeyboardMarkup:
+    is_sub = await get_subscription_status(user_id)
+    sub_text = "🔕 Disable alerts" if is_sub else "🔔 Enable alerts"
+    
     buttons = []
     if has_items:
         buttons.append([InlineKeyboardButton(text="✏️ Edit", callback_data="watchlist_edit")])
+        buttons.append([InlineKeyboardButton(text=sub_text, callback_data="toggle_sub")])
     buttons.append([InlineKeyboardButton(text="🔙 Back", callback_data="back_to_main")])
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
@@ -177,6 +180,13 @@ async def help_command(m: types.Message) -> None:
         parse_mode="Markdown"
     )
 
+@router.callback_query(F.data == "toggle_sub")
+async def handle_toggle_sub(c: CallbackQuery):
+    new_status = await toggle_subscription(c.from_user.id)
+    msg = "Alerts are ON (8:00, 16:00, 20:00)" if new_status else "Alerts are OFF."
+    await c.answer(msg, show_alert=True)
+    favs = await get_user_favorites(c.from_user.id)
+    await show_watchlist(c) 
 
 # ========== MAIN MENU ==========
 

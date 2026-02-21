@@ -1,6 +1,6 @@
 import os
 import ssl
-from sqlalchemy import Column, BigInteger, String, Integer, select, delete
+from sqlalchemy import Column, BigInteger, String, Integer, select, delete, Boolean
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import declarative_base
 
@@ -36,6 +36,11 @@ class Favorite(Base):
     user_id = Column(BigInteger, index=True)
     ticker = Column(String)
 
+class UserSetting(Base):
+    __tablename__ = "user_settings"
+    user_id = Column(BigInteger, primary_key=True)
+    is_subscribed = Column(Boolean, default=False)
+
 async def init_db():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
@@ -65,4 +70,27 @@ async def get_user_favorites(user_id: int):
         result = await session.execute(
             select(Favorite.ticker).where(Favorite.user_id == user_id)
         )
+        return result.scalars().all()
+
+async def toggle_subscription(user_id: int):
+    async with async_session() as session:
+        result = await session.execute(select(UserSetting).where(UserSetting.user_id == user_id))
+        setting = result.scalar_one_or_none()
+        if not setting:
+            setting = UserSetting(user_id=user_id, is_subscribed=True)
+            session.add(setting)
+        else:
+            setting.is_subscribed = not setting.is_subscribed
+        await session.commit()
+        return setting.is_subscribed
+
+async def get_subscription_status(user_id: int) -> bool:
+    async with async_session() as session:
+        result = await session.execute(select(UserSetting.is_subscribed).where(UserSetting.user_id == user_id))
+        status = result.scalar()
+        return status if status is not None else False
+
+async def get_all_subscribers():
+    async with async_session() as session:
+        result = await session.execute(select(UserSetting.user_id).where(UserSetting.is_subscribed == True))
         return result.scalars().all()

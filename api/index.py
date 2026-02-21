@@ -1,11 +1,12 @@
 import os
+import asyncio
 import yfinance as yf
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from aiogram import Bot, types
 from aiogram.types import Update
-from bot_instance import get_dispatcher
-from database import init_db
+from bot_instance import get_dispatcher, fetch_price
+from database import init_db, get_all_subscribers, get_user_favorites
 
 try:
     yf.set_tz_cache_location("/tmp")
@@ -53,3 +54,21 @@ async def feed_update(request: Request):
 @app.get("/")
 async def index():
     return {"status": "Active", "db": "Initialized" if db_initialized else "Pending"}
+
+@app.get("/api/cron/broadcast")
+async def broadcast_handler(request: Request):
+    subscribers = await get_all_subscribers()
+    for user_id in subscribers:
+        favs = await get_user_favorites(user_id)
+        if not favs: continue
+        
+        text = "🔔 Daily Notifications\n\n"
+        for t in favs:
+            price, curr = await asyncio.to_thread(fetch_price, t)
+            text += f"🔹 {t}: `{price} {curr}`\n"
+        
+        try:
+            await bot.send_message(user_id, text, parse_mode="Markdown")
+        except Exception:
+            pass
+    return {"status": "done"}
