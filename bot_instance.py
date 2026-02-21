@@ -185,8 +185,10 @@ async def handle_toggle_sub(c: CallbackQuery):
     new_status = await toggle_subscription(c.from_user.id)
     msg = "Alerts are ON (8:00, 16:00, 20:00)" if new_status else "Alerts are OFF."
     await c.answer(msg, show_alert=True)
+    
     favs = await get_user_favorites(c.from_user.id)
-    await show_watchlist(c) 
+    kb = await watchlist_keyboard(len(favs) > 0, c.from_user.id)
+    await c.message.edit_reply_markup(reply_markup=kb) 
 
 # ========== MAIN MENU ==========
 
@@ -194,10 +196,10 @@ async def handle_toggle_sub(c: CallbackQuery):
 async def back_to_main(c: CallbackQuery) -> None:
     """Return to main menu"""
     await c.message.edit_text(
-        "📈 **Stock & Crypto Price Tracker**\n\n"
+        "📈 Stock & Crypto Price Tracker\n\n"
         "Track your favorite assets and get real-time prices.\n"
         "Need help again?: /help.\n\n"
-        "**Choose an option:**",
+        "Choose an option:",
         reply_markup=main_keyboard(),
         parse_mode="Markdown"
     )
@@ -213,8 +215,8 @@ async def show_watchlist(c: CallbackQuery) -> None:
     
     if not favs:
         await c.message.edit_text(
-            "📭 **Your watchlist is empty**\n\n"
-            "Use **Search Asset** to find and add stocks, currencies, or crypto.",
+            "📭 Your watchlist is empty\n\n"
+            "Use Search Asset to find and add stocks, currencies, or crypto.",
             reply_markup=watchlist_keyboard(False),
             parse_mode="Markdown"
         )
@@ -248,7 +250,7 @@ async def edit_watchlist(c: CallbackQuery) -> None:
         await c.answer("Your watchlist is empty!", show_alert=True)
         return
     
-    text = "✏️ **Edit Watchlist**\n\n"
+    text = "✏️ Edit Watchlist\n\n"
     text += "Tap a ticker to remove it:\n\n"
     for t in favs:
         text += f"🔹 {t}\n"
@@ -306,7 +308,7 @@ async def search_menu(c: CallbackQuery) -> None:
         "• Stocks: `AAPL`, `GOOGL`, `MSFT`\n"
         "• Crypto: `BTC-USD`, `ETH-USD`\n"
         "• Currency: `EURUSD=X`, `GBPUSD=X`\n\n"
-        "⬇️ **Type a ticker below to search:**"
+        "⬇️ Type a ticker below to search:"
     )
     
     await c.message.edit_text(
@@ -324,7 +326,7 @@ async def search_ticker(m: types.Message) -> None:
     
     if len(ticker) > 15 or not all(c.isalnum() or c in "-=" for c in ticker):
         await m.answer(
-            "❌ **Invalid ticker format**\n\n"
+            "❌ Invalid ticker format\n\n"
             "Use only letters, numbers, hyphens, and equal signs.\n"
             "Examples: `AAPL`, `BTC-USD`, `EURUSD=X`",
             parse_mode="Markdown"
@@ -388,3 +390,4 @@ async def help_menu(c: CallbackQuery) -> None:
 
 def get_dispatcher() -> Dispatcher:
     dp = Dispatcher(); dp.include_router(router); return dp
+

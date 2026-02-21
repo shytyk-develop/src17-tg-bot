@@ -5,8 +5,16 @@
   ],
   "crons": [
     {
-      "path": "/api/cron/broadcast",
-      "schedule": "0 7,15,19 * * *"
+      "path": "/api/cron/broadcast?time=morning",
+      "schedule": "0 7 * * *"
+    },
+    {
+      "path": "/api/cron/broadcast?time=afternoon",
+      "schedule": "0 15 * * *"
+    },
+    {
+      "path": "/api/cron/broadcast?time=evening",
+      "schedule": "0 19 * * *"
     }
   ]
 }

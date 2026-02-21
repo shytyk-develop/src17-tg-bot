@@ -56,19 +56,28 @@ async def index():
     return {"status": "Active", "db": "Initialized" if db_initialized else "Pending"}
 
 @app.get("/api/cron/broadcast")
-async def broadcast_handler(request: Request):
+async def broadcast_handler():
     subscribers = await get_all_subscribers()
+    if not subscribers:
+        return {"status": "no subscribers"}
+
     for user_id in subscribers:
         favs = await get_user_favorites(user_id)
-        if not favs: continue
+        if not favs:
+            continue
         
-        text = "🔔 Daily Notifications\n\n"
-        for t in favs:
-            price, curr = await asyncio.to_thread(fetch_price, t)
-            text += f"🔹 {t}: `{price} {curr}`\n"
+        text = "📊 Daily Update (CET)\n\n"
+        for ticker in favs:
+            try:
+                price, currency = await asyncio.to_thread(fetch_price, ticker)
+                text += f"🔹 {ticker}: `{price} {currency}`\n"
+            except:
+                text += f"🔹 {ticker}: `error`\n"
         
         try:
             await bot.send_message(user_id, text, parse_mode="Markdown")
+            await asyncio.sleep(0.05) 
         except Exception:
-            pass
-    return {"status": "done"}
+            pass 
+
+    return {"status": "success", "delivered_to": len(subscribers)}
